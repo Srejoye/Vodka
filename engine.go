@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -93,6 +94,29 @@ func (rg *RouterGroup) Static(relativePath string, root string) {
 		// We use StripPrefix so /static/js/main.js looks in ./public/js/main.js
 		http.StripPrefix(rg.prefix+relativePath, fileServer).ServeHTTP(w, r)
 	})
+}
+
+// SPA fallback
+func (e *Engine) ServeSPA(root string) {
+	fs := http.FileServer(http.Dir(root))
+
+	e.router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Clean path to prevent directory traversal attacks
+		cleanedPath := filepath.Clean(r.URL.Path)
+		absolutePath := filepath.Join(root, cleanedPath)
+
+		// Check if the actual file (like a .js or .css file) exists
+		info, err := os.Stat(absolutePath)
+		if os.IsNotExist(err) || info.IsDir() {
+			// File not found? It's probably a React frontend route (like /dashboard).
+			// Serve index.html and let React handle the routing.
+			http.ServeFile(w, r, filepath.Join(root, "index.html"))
+			return
+		}
+
+		fs.ServeHTTP(w, r)
+	})
+
 }
 
 func (rg *RouterGroup) addRoute(method string, comp string, handler HandlerFunc) {
