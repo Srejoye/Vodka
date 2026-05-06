@@ -31,7 +31,7 @@ func (c *Context) Abort() {
 	c.isAborted = true // Aborted
 }
 
-// Step By Step execution of middlewares
+// Step By Step execution of middlewares doesnt handle abort
 func (c *Context) Next() {
 	c.index++
 	for c.index < int8(len(c.handlers)) {
