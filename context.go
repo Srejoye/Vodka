@@ -19,6 +19,7 @@ type Context struct {
 	Writer     http.ResponseWriter // net/http response writer
 	Request    *http.Request       // net/http request
 	Params     httprouter.Params   // URL Parameters for dynamic routing
+	Keys       map[string]any      // Key-Value Store
 	handlers   []HandlerFunc       // stores middleware funcs and also main handler func
 	index      int8                // tracks current step
 	queryCache url.Values          // Caches query parameter values for fast access
@@ -61,6 +62,20 @@ func (c *Context) DefaultQuery(key string, defautlValue string) string {
 	return defautlValue
 }
 
+// Set Values into Keys into the context to be used later by another middleware
+func (c *Context) Set(key string, value any) {
+	if c.Keys == nil {
+		c.Keys = make(map[string]any)
+	}
+	c.Keys[key] = value
+}
+
+// Get value from a key after a previous middleware assigned it
+func (c *Context) Get(key string) (value any, exists bool) {
+	value, exists = c.Keys[key]
+	return
+}
+
 // Get Param Value
 func (c *Context) Param(key string) string {
 	return c.Params.ByName(key)
@@ -78,12 +93,14 @@ func (c *Context) BindJSON(obj any) error {
 	return decoder.Decode(obj)
 }
 
+// Encode Response to JSON
 func (c *Context) JSON(statusCode int, obj any) {
 	c.Writer.Header().Set("Content-Type", "application/json")
 	c.Writer.WriteHeader(statusCode)
 	json.NewEncoder(c.Writer).Encode(obj)
 }
 
+// Basic String Response
 func (c *Context) String(statusCode int, text string) {
 	c.Writer.Header().Set("Content-Type", "text/plain")
 	c.Writer.WriteHeader(statusCode)
