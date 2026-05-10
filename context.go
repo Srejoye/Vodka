@@ -17,7 +17,7 @@ type HandlerFunc func(*Context) // Handler Function with Context wrapping
 
 type M map[string]any // Shortcut map
 
-const abortIndex int8 = 63 // High Abort Number
+const abortIndex int8 = 63 // High Index for Abort Number
 
 var validate = validator.New() // validator for struct binding
 
@@ -175,6 +175,7 @@ func (c *Context) Error(statusCode int, err error) {
 		Err:    err,
 		Status: statusCode,
 	})
+	c.Abort()
 }
 
 // Basic String Response
