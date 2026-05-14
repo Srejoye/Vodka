@@ -37,3 +37,4 @@ func CreateNote(c *vodka.Context) {
 func GetNotes(c *vodka.Context) {
 	c.JSON(200, models.Notes)
 }
+

@@ -7,6 +7,15 @@ import (
 
 	"github.com/DevanshuTripathi/vodka"
 )
+const (
+	Reset  = "\033[0m"
+	Red    = "\033[31m"
+	Green  = "\033[32m"
+	Yellow = "\033[33m"
+	Blue   = "\033[34m"
+	Cyan   = "\033[36m"
+	Gray   = "\033[37m"
+)
 
 type limiter struct {
 	lastUpdate time.Time
@@ -106,9 +115,10 @@ func RateLimiter(vrl *VodkaRateLimiter) vodka.HandlerFunc {
 		limiter := vrl.getVisitor(ip)
 
 		if !limiter.allow() {
-			c.Error(429, errors.New("Rate Limit Exceeded"))
+			c.Error(429, errors.New(Red+"Rate Limit Exceeded"+Reset))
 		}
 
 		c.Next()
 	}
 }
+

@@ -1,5 +1,6 @@
 package vodka
 
+
 // ANSI Color Escape Codes
 const (
 	Reset  = "\033[0m"

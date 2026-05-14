@@ -67,8 +67,7 @@ func main() {
 
 	default:
 		fmt.Printf(Red+"Unknown command '%s'.\n"+Reset, os.Args[1])
-		fmt.Println("Available commands:\n  vodka\n  vodka create <name>\n  vodka run dev")
-
+		fmt.Println(Cyan + "Available commands:" + Reset + "\n  " + Green + "vodka" + Reset + "\n  " + Green + "vodka create <name>" + Reset + "\n  " + Green + "vodka run dev" + Reset)
 	}
 }
 
@@ -175,7 +174,7 @@ func Hello(c *vodka.Context) {
 	}
 
 	fmt.Printf(Green+"\nProject %s is ready!\n"+Reset, name)
-	fmt.Printf("Next steps:\n  cd %s\n  cd frontend && npm install\n  cd ..\n  vodka run dev\n", name)
+	fmt.Printf(Cyan+"Next steps:\n"+Reset+"  "+Green+"cd %s\n"+Reset+"  "+Green+"cd frontend && npm install\n"+Reset+"  "+Green+"cd ..\n"+Reset+"  "+Green+"vodka run dev\n"+Reset, name)
 }
 
 func runCmd(dir string, name string, args ...string) {
@@ -264,3 +263,4 @@ func buildAndRun() {
 
 	log.Println(Green + "App is running!" + Reset)
 }
+

@@ -37,3 +37,4 @@ func BearerAuth(ctxKey string, validator TokenValidator) vodka.HandlerFunc {
 		c.Next()
 	}
 }
+

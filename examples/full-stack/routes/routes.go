@@ -16,3 +16,4 @@ func Setup(r *vodka.Engine) {
 
 	r.GET("/notes", controllers.GetNotes)
 }
+

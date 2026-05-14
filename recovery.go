@@ -22,3 +22,4 @@ func Recovery() HandlerFunc {
 		c.Next()
 	}
 }
+

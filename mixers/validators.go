@@ -9,3 +9,4 @@ func StaticTokenValidator(validToken string) TokenValidator {
 		return nil, false
 	}
 }
+

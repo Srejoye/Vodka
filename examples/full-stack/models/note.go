@@ -7,3 +7,4 @@ type Note struct {
 
 // Create in memory store
 var Notes = make([]Note, 0)
+

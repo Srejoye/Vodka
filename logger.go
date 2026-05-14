@@ -9,3 +9,4 @@ func Logger() HandlerFunc {
 		log.Printf(Blue+"%s %s"+Reset, c.Request.Method, c.Request.URL.Path)
 	}
 }
+

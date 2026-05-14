@@ -38,3 +38,4 @@ func AllowCORS(origins []string) HandlerFunc {
 		c.Next()
 	}
 }
+
