@@ -21,12 +21,21 @@ type WSConfig struct {
 }
 
 // DefaultWSConfig returns a WSConfig with sensible defaults.
+// By default only same-origin requests are allowed. Use engine.AllowWSOrigins() to permit others.
 func DefaultWSConfig() *WSConfig {
 	return &WSConfig{
 		ReadBufferSize:   1024,
 		WriteBufferSize:  1024,
 		HandshakeTimeout: 10 * time.Second,
-		CheckOrigin:      func(r *http.Request) bool { return true },
+		CheckOrigin: func(r *http.Request) bool {
+			origin := r.Header.Get("Origin")
+			// Allow requests with no Origin header (non-browser clients).
+			if origin == "" {
+				return true
+			}
+			// Only allow same-origin by default.
+			return origin == "http://"+r.Host || origin == "https://"+r.Host
+		},
 	}
 }
 

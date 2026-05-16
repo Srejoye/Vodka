@@ -11,6 +11,7 @@ import (
 func main() {
 	app := vodka.DefaultRouter()
 	app.Use(vodka.AllowCORS([]string{"*"}))
+	app.AllowWSOrigins([]string{"http://localhost:8080", "https://userapp.com"})
 
 	// Basic echo — reflects every message back to the sender.
 	app.WS("/ws/echo", mixers.WSLogger(func(c *vodka.WSContext) {

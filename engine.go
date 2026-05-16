@@ -184,6 +184,25 @@ func (rg *RouterGroup) DELETE(path string, handler HandlerFunc) {
 	rg.addRoute(http.MethodDelete, path, handler)
 }
 
+// AllowWSOrigins whitelists the given origins for WebSocket upgrade requests.
+// Call this before registering WS routes.
+//
+//	app.AllowWSOrigins([]string{"https://userapp.com", "https://admin.com"})
+func (e *Engine) AllowWSOrigins(origins []string) {
+	e.WSConfig.CheckOrigin = func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true
+		}
+		for _, o := range origins {
+			if o == "*" || o == origin {
+				return true
+			}
+		}
+		return false
+	}
+}
+
 // WS registers a WebSocket handler at the given path.
 // Group middlewares (auth, rate limiting, etc.) run during the HTTP upgrade phase.
 // If any middleware aborts the request, the upgrade is cancelled.
