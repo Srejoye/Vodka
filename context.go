@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-
+    "strconv"
 	"github.com/go-playground/validator/v10"
 	"github.com/julienschmidt/httprouter"
 )
@@ -188,4 +188,40 @@ func (c *Context) String(statusCode int, text string) {
 // Helper to get request IP
 func (c *Context) IP() string {
 	return c.Request.RemoteAddr
+}
+
+// QueryInt returns query param as int or an error
+func (c *Context) QueryInt(key string) (int, error) {
+	val, err := strconv.Atoi(c.Query(key))
+	if err != nil {
+		return 0, fmt.Errorf(Red+"query param %q is not a valid int"+Reset, key)
+	}
+	return val, nil
+}
+ 
+// QueryBool returns query param as bool or an error
+func (c *Context) QueryBool(key string) (bool, error) {
+	val, err := strconv.ParseBool(c.Query(key))
+	if err != nil {
+		return false, fmt.Errorf(Red+"query param %q is not a valid bool"+Reset, key)
+	}
+	return val, nil
+}
+ 
+// ParamInt returns URL param as int or an error
+func (c *Context) ParamInt(key string) (int, error) {
+	val, err := strconv.Atoi(c.Param(key))
+	if err != nil {
+		return 0, fmt.Errorf(Red+"param %q is not a valid int"+Reset, key)
+	}
+	return val, nil
+}
+ 
+// ParamBool returns URL param as bool or an error
+func (c *Context) ParamBool(key string) (bool, error) {
+	val, err := strconv.ParseBool(c.Param(key))
+	if err != nil {
+		return false, fmt.Errorf(Red+"param %q is not a valid bool"+Reset, key)
+	}
+	return val, nil
 }

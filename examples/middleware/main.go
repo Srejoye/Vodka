@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"time"
-
 	"github.com/DevanshuTripathi/vodka"
 )
 
