@@ -203,6 +203,54 @@ func (e *Engine) AllowWSOrigins(origins []string) {
 	}
 }
 
+// SSE registers a Server-Sent Events handler at the given path.
+// The response is kept open and events are pushed to the client until it disconnects.
+// Group middlewares run before the SSE stream is opened.
+func (rg *RouterGroup) SSE(relativePath string, handler SSEHandlerFunc) {
+	absolutePath := rg.prefix + relativePath
+
+	middlewares := make([]HandlerFunc, len(rg.middlewares))
+	copy(middlewares, rg.middlewares)
+
+	rg.engine.router.GET(absolutePath, func(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+		// Run group middlewares (auth, rate limiting, etc.) before opening the stream.
+		if len(middlewares) > 0 {
+			c := &Context{
+				Writer:   w,
+				Request:  r,
+				Params:   params,
+				handlers: middlewares,
+				index:    -1,
+			}
+			c.Next()
+			if c.isAborted {
+				return
+			}
+		}
+
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			http.Error(w, "streaming not supported", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+		w.Header().Set("X-Accel-Buffering", "no") // disable nginx buffering
+
+		sc := &SSEContext{
+			Writer:  w,
+			flusher: flusher,
+			Keys:    make(map[string]any),
+			Params:  params,
+			Request: r,
+		}
+
+		handler(sc)
+	})
+}
+
 // WS registers a WebSocket handler at the given path.
 // Group middlewares (auth, rate limiting, etc.) run during the HTTP upgrade phase.
 // If any middleware aborts the request, the upgrade is cancelled.
