@@ -438,3 +438,51 @@ func TestParamAndQueryHelpersViaRouter(t *testing.T) {
 		t.Fatalf("expected body 7, got %q", w.Body.String())
 	}
 }
+
+func TestContextCopy(t *testing.T) {
+	app := NewRouter()
+
+	var cp *Context
+
+	app.GET("/users/:id", func(c *Context) {
+		cp = c.Copy()
+
+		id, err := c.ParamInt("id")
+		if err != nil {
+			t.Errorf("Error using ParamInt: %v", err)
+		}
+
+		if id != 67 {
+			t.Errorf("Expected 67, got=%d", id)
+		}
+
+		topic := c.Query("topic")
+		if topic != "test" {
+			t.Errorf("Expected test, got=%s", topic)
+		}
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/users/67?topic=test", nil)
+	w := httptest.NewRecorder()
+
+	app.ServeHTTP(w, req)
+
+	if w.Code != 200 {
+		t.Errorf("Eexpected 200, got %d", w.Code)
+	}
+
+	id, err := cp.ParamInt("id")
+	if err != nil {
+		t.Errorf("Error using ParamInt: %v", err)
+	}
+
+	if id != 67 {
+		t.Errorf("Expected 67, got=%d", id)
+	}
+
+	topic := cp.Query("topic")
+	if topic != "test" {
+		t.Errorf("Expected test, got=%s", topic)
+	}
+
+}
