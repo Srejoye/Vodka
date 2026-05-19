@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 func TestAbortStopsChain(t *testing.T) {
@@ -123,5 +126,315 @@ func TestBindJSON(t *testing.T) {
 
 	if response["message"] != "success" {
 		t.Errorf("got %s, expected success", response["message"])
+	}
+}
+
+func newTestContext(method, target string) *Context {
+	return &Context{Request: httptest.NewRequest(method, target, nil)}
+}
+
+func TestQuery(t *testing.T) {
+	tests := []struct {
+		name   string
+		target string
+		key    string
+		want   string
+	}{
+		{name: "existing key", target: "/?page=2&sort=name", key: "page", want: "2"},
+		{name: "another key", target: "/?page=2&sort=name", key: "sort", want: "name"},
+		{name: "missing key", target: "/?page=2", key: "missing", want: ""},
+		{name: "no query string", target: "/", key: "page", want: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := newTestContext(http.MethodGet, tt.target)
+			if got := c.Query(tt.key); got != tt.want {
+				t.Fatalf("Query(%q) = %q, want %q", tt.key, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDefaultQuery(t *testing.T) {
+	tests := []struct {
+		name         string
+		target       string
+		key          string
+		defaultValue string
+		want         string
+	}{
+		{name: "uses query value", target: "/?limit=50", key: "limit", defaultValue: "10", want: "50"},
+		{name: "uses default when missing", target: "/", key: "limit", defaultValue: "10", want: "10"},
+		{name: "uses default when empty", target: "/?limit=", key: "limit", defaultValue: "10", want: "10"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := newTestContext(http.MethodGet, tt.target)
+			if got := c.DefaultQuery(tt.key, tt.defaultValue); got != tt.want {
+				t.Fatalf("DefaultQuery(%q, %q) = %q, want %q", tt.key, tt.defaultValue, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParam(t *testing.T) {
+	c := &Context{
+		Request: httptest.NewRequest(http.MethodGet, "/users/42", nil),
+		Params: httprouter.Params{
+			{Key: "id", Value: "42"},
+			{Key: "name", Value: "vodka"},
+		},
+	}
+
+	tests := []struct {
+		key  string
+		want string
+	}{
+		{key: "id", want: "42"},
+		{key: "name", want: "vodka"},
+		{key: "missing", want: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.key, func(t *testing.T) {
+			if got := c.Param(tt.key); got != tt.want {
+				t.Fatalf("Param(%q) = %q, want %q", tt.key, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestQueryInt(t *testing.T) {
+	tests := []struct {
+		name      string
+		target    string
+		key       string
+		want      int
+		wantError string
+	}{
+		{name: "valid int", target: "/?page=10", key: "page", want: 10},
+		{name: "invalid int", target: "/?page=abc", key: "page", wantError: `query param "page" is not a valid int`},
+		{name: "missing key", target: "/", key: "page", wantError: `query param "page" is not a valid int`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := newTestContext(http.MethodGet, tt.target)
+			got, err := c.QueryInt(tt.key)
+
+			if tt.wantError != "" {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if !strings.Contains(err.Error(), tt.wantError) {
+					t.Fatalf("error = %q, want substring %q", err.Error(), tt.wantError)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("QueryInt(%q) = %d, want %d", tt.key, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestQueryBool(t *testing.T) {
+	tests := []struct {
+		name      string
+		target    string
+		key       string
+		want      bool
+		wantError string
+	}{
+		{name: "true", target: "/?active=true", key: "active", want: true},
+		{name: "false", target: "/?active=false", key: "active", want: false},
+		{name: "invalid bool", target: "/?active=maybe", key: "active", wantError: `query param "active" is not a valid bool`},
+		{name: "missing key", target: "/", key: "active", wantError: `query param "active" is not a valid bool`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := newTestContext(http.MethodGet, tt.target)
+			got, err := c.QueryBool(tt.key)
+
+			if tt.wantError != "" {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if !strings.Contains(err.Error(), tt.wantError) {
+					t.Fatalf("error = %q, want substring %q", err.Error(), tt.wantError)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("QueryBool(%q) = %v, want %v", tt.key, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParamInt(t *testing.T) {
+	tests := []struct {
+		name      string
+		params    httprouter.Params
+		key       string
+		want      int
+		wantError string
+	}{
+		{
+			name:   "valid int",
+			params: httprouter.Params{{Key: "id", Value: "99"}},
+			key:    "id",
+			want:   99,
+		},
+		{
+			name:      "invalid int",
+			params:    httprouter.Params{{Key: "id", Value: "abc"}},
+			key:       "id",
+			wantError: `param "id" is not a valid int`,
+		},
+		{
+			name:      "missing param",
+			params:    httprouter.Params{},
+			key:       "id",
+			wantError: `param "id" is not a valid int`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Context{
+				Request: httptest.NewRequest(http.MethodGet, "/", nil),
+				Params:  tt.params,
+			}
+			got, err := c.ParamInt(tt.key)
+
+			if tt.wantError != "" {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if !strings.Contains(err.Error(), tt.wantError) {
+					t.Fatalf("error = %q, want substring %q", err.Error(), tt.wantError)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("ParamInt(%q) = %d, want %d", tt.key, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParamBool(t *testing.T) {
+	tests := []struct {
+		name      string
+		params    httprouter.Params
+		key       string
+		want      bool
+		wantError string
+	}{
+		{
+			name:   "true",
+			params: httprouter.Params{{Key: "enabled", Value: "true"}},
+			key:    "enabled",
+			want:   true,
+		},
+		{
+			name:   "false",
+			params: httprouter.Params{{Key: "enabled", Value: "0"}},
+			key:    "enabled",
+			want:   false,
+		},
+		{
+			name:      "invalid bool",
+			params:    httprouter.Params{{Key: "enabled", Value: "nope"}},
+			key:       "enabled",
+			wantError: `param "enabled" is not a valid bool`,
+		},
+		{
+			name:      "missing param",
+			params:    httprouter.Params{},
+			key:       "enabled",
+			wantError: `param "enabled" is not a valid bool`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Context{
+				Request: httptest.NewRequest(http.MethodGet, "/", nil),
+				Params:  tt.params,
+			}
+			got, err := c.ParamBool(tt.key)
+
+			if tt.wantError != "" {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if !strings.Contains(err.Error(), tt.wantError) {
+					t.Fatalf("error = %q, want substring %q", err.Error(), tt.wantError)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("ParamBool(%q) = %v, want %v", tt.key, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParamAndQueryHelpersViaRouter(t *testing.T) {
+	app := DefaultRouter()
+
+	app.GET("/users/:id", func(c *Context) {
+		id, err := c.ParamInt("id")
+		if err != nil {
+			t.Fatalf("ParamInt: %v", err)
+		}
+
+		page, err := c.QueryInt("page")
+		if err != nil {
+			t.Fatalf("QueryInt: %v", err)
+		}
+
+		active, err := c.QueryBool("active")
+		if err != nil {
+			t.Fatalf("QueryBool: %v", err)
+		}
+
+		if id != 7 || page != 3 || !active {
+			t.Fatalf("got id=%d page=%d active=%v, want id=7 page=3 active=true", id, page, active)
+		}
+
+		c.String(http.StatusOK, c.Param("id"))
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/users/7?page=3&active=true", nil)
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	if w.Body.String() != "7" {
+		t.Fatalf("expected body 7, got %q", w.Body.String())
 	}
 }

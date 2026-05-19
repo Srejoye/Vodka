@@ -76,7 +76,7 @@ func (c *Context) DefaultQuery(key string, defautlValue string) string {
 		c.queryCache = c.Request.URL.Query()
 	}
 
-	if values, ok := c.queryCache[key]; ok && len(values) > 0 {
+	if values, ok := c.queryCache[key]; ok && len(values) > 0 && values[0] != "" {
 		return values[0]
 	}
 
