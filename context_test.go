@@ -438,3 +438,105 @@ func TestParamAndQueryHelpersViaRouter(t *testing.T) {
 		t.Fatalf("expected body 7, got %q", w.Body.String())
 	}
 }
+
+func TestContextCopy(t *testing.T) {
+	app := NewRouter()
+
+	var cp *Context
+
+	app.GET("/users/:id", func(c *Context) {
+		cp = c.Copy()
+
+		id, err := c.ParamInt("id")
+		if err != nil {
+			t.Errorf("Error using ParamInt: %v", err)
+		}
+
+		if id != 67 {
+			t.Errorf("Expected 67, got=%d", id)
+		}
+
+		topic := c.Query("topic")
+		if topic != "test" {
+			t.Errorf("Expected test, got=%s", topic)
+		}
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/users/67?topic=test", nil)
+	w := httptest.NewRecorder()
+
+	app.ServeHTTP(w, req)
+
+	if w.Code != 200 {
+		t.Errorf("Eexpected 200, got %d", w.Code)
+	}
+
+	id, err := cp.ParamInt("id")
+	if err != nil {
+		t.Errorf("Error using ParamInt: %v", err)
+	}
+
+	if id != 67 {
+		t.Errorf("Expected 67, got=%d", id)
+	}
+
+	topic := cp.Query("topic")
+	if topic != "test" {
+		t.Errorf("Expected test, got=%s", topic)
+	}
+}
+
+func TestSetCookie(t *testing.T) {
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/", nil)
+	c := &Context{Writer: rr, Request: req}
+
+	c.SetCookie("token", "abc123", 3600)
+
+	cookies := rr.Result().Cookies()
+	if len(cookies) != 1 {
+		t.Fatalf("expected 1 cookie, got %d", len(cookies))
+	}
+	if cookies[0].Name != "token" || cookies[0].Value != "abc123" {
+		t.Errorf("got %s=%s, want token=abc123", cookies[0].Name, cookies[0].Value)
+	}
+	if cookies[0].MaxAge != 3600 {
+		t.Errorf("got MaxAge %d, want 3600", cookies[0].MaxAge)
+	}
+}
+
+func TestCookie(t *testing.T) {
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/", nil)
+	req.AddCookie(&http.Cookie{Name: "session", Value: "xyz"})
+	c := &Context{Writer: rr, Request: req}
+
+	val, err := c.Cookie("session")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if val != "xyz" {
+		t.Errorf("got %q, want xyz", val)
+	}
+
+	_, err = c.Cookie("missing")
+	if err == nil {
+		t.Error("expected error for missing cookie")
+	}
+}
+
+func TestClearCookie(t *testing.T) {
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/", nil)
+	c := &Context{Writer: rr, Request: req}
+
+	c.ClearCookie("token")
+
+	cookies := rr.Result().Cookies()
+	if len(cookies) != 1 {
+		t.Fatalf("expected 1 cookie, got %d", len(cookies))
+	}
+	if cookies[0].MaxAge != -1 {
+		t.Errorf("got MaxAge %d, want -1", cookies[0].MaxAge)
+	}
+}
