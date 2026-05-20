@@ -4,20 +4,27 @@ import Link from "next/link";
 
 export default function Navbar() {
   return (
-    <nav className="bg-black text-white border-b border-gray-800">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex justify-between h-16 items-center">
+    <nav className="bg-black text-white border-b border-slate-800">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="flex flex-col gap-4 py-4 md:flex-row md:items-center md:justify-between">
           <Link href="/">
             <span className="text-2xl font-bold">Vodka</span>
           </Link>
-          <div className="flex gap-6">
+
+          <div className="flex flex-wrap items-center justify-center gap-3 text-sm font-medium md:justify-start">
             <Link href="/">
-              <span className="hover:text-gray-300 cursor-pointer">Home</span>
+              <span className="cursor-pointer transition-colors duration-200 hover:text-slate-300">Home</span>
             </Link>
+            <a href="#features" className="rounded-full border border-slate-700 px-4 py-2 transition-colors duration-200 hover:border-slate-500 hover:text-slate-300">
+              Features
+            </a>
+            <a href="#about" className="rounded-full border border-slate-700 px-4 py-2 transition-colors duration-200 hover:border-slate-500 hover:text-slate-300">
+              About
+            </a>
             <Link href="/docs">
-              <span className="hover:text-gray-300 cursor-pointer">Documentation</span>
+              <span className="cursor-pointer transition-colors duration-200 hover:text-slate-300">Documentation</span>
             </Link>
-            <a href="https://github.com/DevanshuTripathi/vodka" target="_blank" rel="noopener noreferrer" className="hover:text-gray-300">
+            <a href="https://github.com/DevanshuTripathi/vodka" target="_blank" rel="noopener noreferrer" className="transition-colors duration-200 hover:text-slate-300">
               GitHub
             </a>
           </div>
