@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/manifoldco/promptui"
 )
 
 const (
@@ -103,14 +104,31 @@ func runDev() {
 }
 
 func createProject(name string) {
-	fmt.Println(Cyan + "Choose project type:" + Reset)
-	fmt.Println("1. Vite + React")
-	fmt.Println("2. NextJS")
-	fmt.Println("3. Only Vodka Backend (Go)")
+		prompt := promptui.Select{
+		Label: "Choose project type",
+		Items: []string{
+			"Vite + React",
+			"NextJS",
+			"Only Vodka Backend (Go)",
+		},
+	}
 
-	var choice int
-	fmt.Print("Enter choice (1/2/3): ")
-	fmt.Scanln(&choice)
+	_, result, err := prompt.Run()
+	if err != nil {
+		fmt.Println(Red + "Selection cancelled" + Reset)
+		return
+	}
+
+	choice := 0
+
+	switch result {
+	case "Vite + React":
+		choice = 1
+	case "NextJS":
+		choice = 2
+	case "Only Vodka Backend (Go)":
+		choice = 3
+	}
 	fmt.Printf(Cyan+"Distilling your project: %s...\n"+Reset, name)
 
 	os.Mkdir(name, 0755)
@@ -184,13 +202,35 @@ func Hello(c *vodka.Context) {
 
 	switch choice {
 	case 1:
-		fmt.Println(Gray + "Spinning up React frontend with Vite..." + Reset)
+	frontendPrompt := promptui.Select{
+		Label: "Choose frontend type",
+		Items: []string{
+			"React (JavaScript)",
+			"React (TypeScript)",
+		},
+	}
 
-		if runtime.GOOS == "windows" {
-			runCmd(name, "cmd", "/C", "npm create vite@latest frontend -- --template react")
-		} else {
-			runCmd(name, "npm", "create", "vite@latest", "frontend", "--", "--template", "react")
-		}
+	_, frontendResult, err := frontendPrompt.Run()
+	if err != nil {
+		fmt.Println(Red + "Selection cancelled" + Reset)
+		return
+	}
+
+	template := "react"
+
+	if frontendResult == "React (TypeScript)" {
+		template = "react-ts"
+	}
+
+	fmt.Println(Gray + "Spinning up React frontend with Vite..." + Reset)
+
+	if runtime.GOOS == "windows" {
+		runCmd(name, "cmd", "/C",
+			"npm create vite@latest frontend -- --template "+template)
+	} else {
+		runCmd(name, "npm", "create", "vite@latest",
+			"frontend", "--", "--template", template)
+	}
 
 	case 2:
 		fmt.Println(Gray + "Creating NextJS project..." + Reset)
