@@ -129,7 +129,29 @@ func (e *Engine) ServeSPA(root string) {
 
 // ServeHTTP intercepts every request before it hits the router
 func (e *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	if req.Method == http.MethodOptions {
+		e.handlePreFlight(w, req)
+		return
+	}
 	e.router.ServeHTTP(w, req)
+}
+
+func (e *Engine) handlePreFlight(w http.ResponseWriter, req *http.Request) {
+	c := contextPool.Get().(*Context)
+	// Passing e.middlewares so global middlewares like AllowCORS execute
+	c.Initialize(w, req, nil, e.middlewares, e)
+
+	defer func() {
+		c.Reset()
+		contextPool.Put(c)
+	}()
+
+	c.Next()
+
+	// If the middleware didn't abort (e.g. no CORS middleware), fallback to 204
+	if !c.isAborted {
+		c.Writer.WriteHeader(http.StatusNoContent)
+	}
 }
 
 func (rg *RouterGroup) addRoute(method string, comp string, handler HandlerFunc) {
