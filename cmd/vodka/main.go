@@ -51,18 +51,18 @@ func main() {
 
 	switch os.Args[1] {
 	case "create":
-	if len(os.Args) < 3 {
-		fmt.Println(Red + "Usage: vodka create <project-name> [--minimal]" + Reset)
-		return
-	}
+		if len(os.Args) < 3 {
+			fmt.Println(Red + "Usage: vodka create <project-name> [--minimal]" + Reset)
+			return
+		}
 
-	minimal := false
+		minimal := false
 
-	if len(os.Args) >= 4 && os.Args[3] == "--minimal" {
-		minimal = true
-	}
+		if len(os.Args) >= 4 && os.Args[3] == "--minimal" {
+			minimal = true
+		}
 
-	createProject(os.Args[2], minimal)
+		createProject(os.Args[2], minimal)
 
 	case "run":
 		if len(os.Args) >= 3 && os.Args[2] == "dev" {
@@ -111,58 +111,58 @@ func runDev() {
 }
 
 func createProject(name string, minimal bool) {
-		var result string
+	var result string
 
-if !minimal {
-	prompt := promptui.Select{
-		Label: "Choose project type",
-		Items: []string{
-			"Vite + React",
-			"NextJS",
-			"Only Vodka Backend (Go)",
-		},
+	if !minimal {
+		prompt := promptui.Select{
+			Label: "Choose project type",
+			Items: []string{
+				"Vite + React",
+				"NextJS",
+				"Only Vodka Backend (Go)",
+			},
+		}
+
+		_, resultTemp, err := prompt.Run()
+		if err != nil {
+			fmt.Println(Red + "Selection cancelled" + Reset)
+			return
+		}
+
+		result = resultTemp
 	}
-
-	_, resultTemp, err := prompt.Run()
-	if err != nil {
-		fmt.Println(Red + "Selection cancelled" + Reset)
-		return
-	}
-
-	result = resultTemp
-}
 
 	choice := 0
 
-if minimal {
-    fmt.Println(Cyan + "Using minimal scaffold..." + Reset)
+	if minimal {
+		fmt.Println(Cyan + "Using minimal scaffold..." + Reset)
 
-    prompt := promptui.Select{
-        Label: "Choose minimal project type",
-        Items: []string{
-            "Vite + React",
-            "NextJS",
-            "Only Vodka Backend (Go)",
-        },
-    }
+		prompt := promptui.Select{
+			Label: "Choose minimal project type",
+			Items: []string{
+				"Vite + React",
+				"NextJS",
+				"Only Vodka Backend (Go)",
+			},
+		}
 
-    _, resultTemp, err := prompt.Run()
-    if err != nil {
-        fmt.Println(Red + "Selection cancelled" + Reset)
-        return
-    }
+		_, resultTemp, err := prompt.Run()
+		if err != nil {
+			fmt.Println(Red + "Selection cancelled" + Reset)
+			return
+		}
 
-    result = resultTemp
-}
+		result = resultTemp
+	}
 
-switch result {
-case "Vite + React":
-    choice = 1
-case "NextJS":
-    choice = 2
-case "Only Vodka Backend (Go)":
-    choice = 3
-}
+	switch result {
+	case "Vite + React":
+		choice = 1
+	case "NextJS":
+		choice = 2
+	case "Only Vodka Backend (Go)":
+		choice = 3
+	}
 	fmt.Printf(Cyan+"Distilling your project: %s...\n"+Reset, name)
 
 	os.Mkdir(name, 0755)
@@ -181,8 +181,8 @@ case "Only Vodka Backend (Go)":
 	}
 	mainGoContent := ""
 
-if minimal {
-	mainGoContent = `package main
+	if minimal {
+		mainGoContent = `package main
 
 import "github.com/DevanshuTripathi/vodka"
 
@@ -196,8 +196,8 @@ func main() {
 	app.Run(":8080")
 }
 `
-} else {
-	mainGoContent = `package main
+	} else {
+		mainGoContent = `package main
 
 import (
 	"github.com/DevanshuTripathi/vodka"
@@ -216,7 +216,7 @@ func main() {
 	app.Run(":8080")
 }
 `
-}
+	}
 	routesContent := `package routes
 
 import (
@@ -248,45 +248,45 @@ func Hello(c *vodka.Context) {
 `
 	os.WriteFile(filepath.Join(name, "main.go"), []byte(mainGoContent), 0644)
 
-if !minimal {
-	os.MkdirAll(filepath.Join(name, "controllers"), 0755)
-	os.MkdirAll(filepath.Join(name, "routes"), 0755)
+	if !minimal {
+		os.MkdirAll(filepath.Join(name, "controllers"), 0755)
+		os.MkdirAll(filepath.Join(name, "routes"), 0755)
 
-	os.WriteFile(filepath.Join(name, "controllers", "ping.go"), []byte(controllersContent), 0644)
-	os.WriteFile(filepath.Join(name, "routes", "routes.go"), []byte(routesContent), 0644)
-}
+		os.WriteFile(filepath.Join(name, "controllers", "ping.go"), []byte(controllersContent), 0644)
+		os.WriteFile(filepath.Join(name, "routes", "routes.go"), []byte(routesContent), 0644)
+	}
 
 	switch choice {
 	case 1:
-	frontendPrompt := promptui.Select{
-		Label: "Choose frontend type",
-		Items: []string{
-			"React (JavaScript)",
-			"React (TypeScript)",
-		},
-	}
+		frontendPrompt := promptui.Select{
+			Label: "Choose frontend type",
+			Items: []string{
+				"React (JavaScript)",
+				"React (TypeScript)",
+			},
+		}
 
-	_, frontendResult, err := frontendPrompt.Run()
-	if err != nil {
-		fmt.Println(Red + "Selection cancelled" + Reset)
-		return
-	}
+		_, frontendResult, err := frontendPrompt.Run()
+		if err != nil {
+			fmt.Println(Red + "Selection cancelled" + Reset)
+			return
+		}
 
-	template := "react"
+		template := "react"
 
-	if frontendResult == "React (TypeScript)" {
-		template = "react-ts"
-	}
+		if frontendResult == "React (TypeScript)" {
+			template = "react-ts"
+		}
 
-	fmt.Println(Gray + "Spinning up React frontend with Vite..." + Reset)
+		fmt.Println(Gray + "Spinning up React frontend with Vite..." + Reset)
 
-	if runtime.GOOS == "windows" {
-		runCmd(name, "cmd", "/C",
-			"npm create vite@latest frontend -- --template "+template)
-	} else {
-		runCmd(name, "npm", "create", "vite@latest",
-			"frontend", "--", "--template", template)
-	}
+		if runtime.GOOS == "windows" {
+			runCmd(name, "cmd", "/C",
+				"npm create vite@latest frontend -- --template "+template)
+		} else {
+			runCmd(name, "npm", "create", "vite@latest",
+				"frontend", "--", "--template", template)
+		}
 
 	case 2:
 		fmt.Println(Gray + "Creating NextJS project..." + Reset)
