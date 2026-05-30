@@ -126,3 +126,53 @@ func TestGzipRouteLevel(t *testing.T) {
 		t.Errorf("expected Content-Encoding: gzip at route level")
 	}
 }
+
+func TestGzipPreservesStatusCode(t *testing.T) {
+	app := vodka.NewRouter()
+	app.Use(vodka.Logger())
+	api := app.Group("/api", Gzip())
+	api.GET("/notfound", func(c *vodka.Context) {
+		c.JSON(http.StatusNotFound, vodka.M{"error": "not found"})
+	})
+
+	s := httptest.NewServer(app)
+	defer s.Close()
+
+	req, _ := http.NewRequest("GET", s.URL+"/api/notfound", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+
+	resp, err := http.DefaultTransport.RoundTrip(req)
+	if err != nil {
+		t.Fatalf("request error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("expected 404, got %d", resp.StatusCode)
+	}
+}
+
+func TestGzipPreservesStatusCodeOnError(t *testing.T) {
+	app := vodka.NewRouter()
+	app.Use(vodka.Logger())
+	api := app.Group("/api", Gzip())
+	api.GET("/error", func(c *vodka.Context) {
+		c.JSON(http.StatusInternalServerError, vodka.M{"error": "server error"})
+	})
+
+	s := httptest.NewServer(app)
+	defer s.Close()
+
+	req, _ := http.NewRequest("GET", s.URL+"/api/error", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+
+	resp, err := http.DefaultTransport.RoundTrip(req)
+	if err != nil {
+		t.Fatalf("request error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500, got %d", resp.StatusCode)
+	}
+}

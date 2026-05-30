@@ -19,6 +19,10 @@ func (g *gzipResponseWriter) Write(b []byte) (int, error) {
 	return g.gz.Write(b)
 }
 
+func (g *gzipResponseWriter) WriteHeader(code int) {
+    g.ResponseWriter.WriteHeader(code)
+}
+
 // Map of pools for different levels
 var gzipPools sync.Map
 
